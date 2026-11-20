@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import io
+import ssl
 import subprocess
 import sys
 import tarfile
@@ -15,6 +16,9 @@ from digitalhub_runtime_python.utils.inputs import compose_inputs
 UV = "/opt/nuclio/uv/uv"
 DATASET_PACKAGE = "mars-multisensor-dataset"
 DATASET_ROOT = Path("/shared")
+
+ARCHIVE_CONTEXT = ssl.create_default_context()
+ARCHIVE_CONTEXT.verify_flags = ssl.VERIFY_X509_PARTIAL_CHAIN
 
 STAGES = {
     "ice_consistency": "scripts.ice_consistency_pipeline:run_labels",
@@ -62,7 +66,7 @@ def run_installed_stage(
     subprocess.run(
         [UV, "pip", "install", "--python", sys.executable, *pins], check=True
     )
-    with urllib.request.urlopen(dataset_archive) as response:
+    with urllib.request.urlopen(dataset_archive, context=ARCHIVE_CONTEXT) as response:
         with tarfile.open(fileobj=io.BytesIO(response.read()), mode="r:gz") as archive:
             top = archive.getnames()[0].split("/")[0]
             archive.extractall(DATASET_ROOT, filter="data")
