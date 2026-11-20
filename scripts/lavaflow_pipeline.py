@@ -1,13 +1,5 @@
 #!/usr/bin/env python
-"""The lava flow labels and builds: the reviewed crops, every candidate, or the list.
-
-By default it builds from nothing the crops reviewed as reflector or none into
-`data/<version>/lavaflow/dataset`, so an unsure or unreviewed crop is never fetched.
-With --annotation it fills in every candidate crop into
-`data/<version>/lavaflow/candidates`, for the review, or with --force deletes what it
-held, on disk or published, and builds it from nothing. With --labels it lists the
-candidate crops alone, from the coverage on disk. Run here, or submitted with --dh.
-"""
+"""The lava flow labels and builds: the reviewed crops, every candidate, or the list."""
 
 from __future__ import annotations
 
