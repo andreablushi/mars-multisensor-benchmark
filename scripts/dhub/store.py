@@ -15,8 +15,8 @@ from mars_multisensor_dataset.analysis import paths as analysis_paths
 from mars_multisensor_dataset.common.paths import VERSION
 from mars_multisensor_dataset.common.pool import cancellable_pool
 
-from ice_consistency.paths import ICE_CONSISTENCY_ROOT
-from lavaflow.paths import LAVAFLOW_ROOT
+from ice_consistency.configs import ICE_CONSISTENCY_ROOT
+from lavaflow.configs import LAVAFLOW_ROOT
 
 ICE_CONSISTENCY = "ice-consistency"
 LAVAFLOW = "lavaflow"
@@ -31,17 +31,19 @@ ARTIFACTS = {
 SHARED = ("coverage",)
 
 
-def published_name(name: str) -> str:
+def published_artifact_name(name: str) -> str:
     """Return what one folder is published as, prefixed by its version unless shared."""
     return name if name in SHARED else f"{VERSION}-{name}"
 
 
-def folder_key(name: str) -> str:
+def artifact_folder_key(name: str) -> str:
     """Return the folder one artifact is kept in, under its version unless shared."""
     return name if name in SHARED else f"{VERSION}/{name}"
 
 
-def stored_folder(project, name: str, subfolder: str = "") -> tuple[object, str, str]:
+def stored_folder_location(
+    project, name: str, subfolder: str = ""
+) -> tuple[object, str, str]:
     """Return the S3 client, bucket and key prefix one published folder lives under.
 
     Args:
@@ -58,11 +60,13 @@ def stored_folder(project, name: str, subfolder: str = "") -> tuple[object, str,
     dh.refresh_token()
     root = get_default_store(project.name)
     inside = f"{subfolder}/" if subfolder else ""
-    place = urlparse(f"{root}/{project.name}/artifacts/{folder_key(name)}/{inside}")
+    place = urlparse(
+        f"{root}/{project.name}/artifacts/{artifact_folder_key(name)}/{inside}"
+    )
     return dh.get_s3_client(), place.netloc, place.path.lstrip("/")
 
 
-def upload_folder(
+def upload_folder_as_artifact(
     project,
     name: str,
     root: Path,
@@ -83,7 +87,7 @@ def upload_folder(
     Returns:
         artifact: The logged artifact.
     """
-    client, bucket, prefix = stored_folder(project, name)
+    client, bucket, prefix = stored_folder_location(project, name)
     files = (
         [one for one in root.rglob("*") if one.is_file()] if files is None else files
     )
@@ -96,11 +100,13 @@ def upload_folder(
     for path, key in zip(last, keys[len(files) :], strict=True):
         client.upload_file(str(path), bucket, key)
     return project.new_artifact(
-        name=published_name(name), kind="artifact", path=f"s3://{bucket}/{prefix}"
+        name=published_artifact_name(name),
+        kind="artifact",
+        path=f"s3://{bucket}/{prefix}",
     )
 
 
-def delete_folder(project, name: str, subfolder: str = "") -> None:
+def delete_published_folder(project, name: str, subfolder: str = "") -> None:
     """Delete every object one published folder holds, so it can be built anew.
 
     Args:
@@ -108,7 +114,7 @@ def delete_folder(project, name: str, subfolder: str = "") -> None:
         name: The folder, its version added unless shared.
         subfolder: The folder inside it deleted alone, or "" for all of it.
     """
-    client, bucket, prefix = stored_folder(project, name, subfolder)
+    client, bucket, prefix = stored_folder_location(project, name, subfolder)
     pages = client.get_paginator("list_objects_v2").paginate(
         Bucket=bucket, Prefix=prefix
     )
@@ -120,7 +126,7 @@ def delete_folder(project, name: str, subfolder: str = "") -> None:
         )
 
 
-def download_folder(
+def download_published_folder(
     project,
     name: str,
     into: Path,
@@ -139,7 +145,7 @@ def download_folder(
         downloads: How many files are brought down at once.
         subfolder: The folder inside it brought down alone, or "" for its top.
     """
-    client, bucket, prefix = stored_folder(project, name, subfolder)
+    client, bucket, prefix = stored_folder_location(project, name, subfolder)
     listed = client.get_paginator("list_objects_v2").paginate(
         Bucket=bucket, Prefix=prefix, **({"Delimiter": "/"} if names else {})
     )

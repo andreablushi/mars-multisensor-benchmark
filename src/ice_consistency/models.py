@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 
 @dataclass(slots=True)
-class SwimSettings:
+class IceConsistencySettings:
     """The settled choices for sampling the SWIM maps under every tile.
 
     Attributes:

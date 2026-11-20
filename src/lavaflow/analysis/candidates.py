@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from mars_multisensor_dataset.analysis.coverage.artifacts import read_set_events
 from mars_multisensor_dataset.analysis.models.instrument import InstrumentSet
@@ -10,16 +10,13 @@ from mars_multisensor_dataset.building.configs import sharad
 from mars_multisensor_dataset.common.maths import box
 from mars_multisensor_dataset.common.models.tile import Tile
 
-from lavaflow.models import (
-    LavaFlowLabel,
-    LavaFlowSettings,
-)
+from lavaflow.models import LavaFlowLabel, LavaFlowRegion
 
 
-def candidate_labels(
+def candidate_lavaflow_labels(
     tiles: Sequence[Tile],
     radargrams: InstrumentSet,
-    settings: LavaFlowSettings,
+    regions: Mapping[str, LavaFlowRegion],
     floor_km2: float,
 ) -> list[LavaFlowLabel]:
     """List every crop the selection would admit over a region, named tracks first.
@@ -27,7 +24,7 @@ def candidate_labels(
     Args:
         tiles: Every tile of the grid.
         radargrams: The instrument set the SHARAD radargrams are measured as.
-        settings: The settled choices, holding every region and its tracks.
+        regions: Every region a paper reports reflectors in, by its name.
         floor_km2: The ground a track has to land on a tile to be admitted.
 
     Returns:
@@ -36,7 +33,7 @@ def candidate_labels(
     """
     boxes = box.bounds_boxes(tiles)
     labels = []
-    for name, region in settings.regions.items():
+    for name, region in regions.items():
         reached = [
             tiles[at] for at in box.touching(boxes, box.bounds_box(region)).nonzero()[0]
         ]

@@ -10,7 +10,7 @@ from dhub import store
 from omegaconf import OmegaConf
 
 from common.paths import CONFIGS_ROOT
-from lavaflow import paths
+from lavaflow import configs
 
 
 def main() -> int:
@@ -21,11 +21,11 @@ def main() -> int:
     """
     argparse.ArgumentParser(description=__doc__).parse_args()
     platform = OmegaConf.load(CONFIGS_ROOT / "digitalhub.yaml")
-    store.upload_folder(
+    store.upload_folder_as_artifact(
         dh.get_or_create_project(platform.project),
         store.LAVAFLOW,
-        paths.LAVAFLOW_ROOT,
-        [paths.LAVAFLOW_VERDICTS_PATH],
+        configs.LAVAFLOW_ROOT,
+        [configs.LAVAFLOW_VERDICTS_PATH],
     )
     return 0
 

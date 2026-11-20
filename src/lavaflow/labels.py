@@ -1,54 +1,55 @@
-"""The lava flow labels as written, and the review's verdict on each crop."""
+"""The lava flow candidate crops, listed and written down, or read back as built."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from dataclasses import replace
-from pathlib import Path
+from collections.abc import Mapping
 
-from mars_multisensor_dataset.common.disk import parquet
-from mars_multisensor_dataset.common.disk.files import read_json, write_json
+from mars_multisensor_dataset.analysis.models.settings import AnalysisSettings
+from mars_multisensor_dataset.analysis.selector.filters.admit import floor_km2
+from mars_multisensor_dataset.analysis.utils.tile_group import every_tile, tile_grid
+from mars_multisensor_dataset.building.configs import sharad
 
-from lavaflow import paths
-from lavaflow.models import (
-    LavaFlowLabel,
-)
-
-LAVAFLOW_LABELS = parquet.schema_of(LavaFlowLabel)
+from lavaflow.analysis.artifacts import read_lavaflow_labels, write_lavaflow_labels
+from lavaflow.analysis.candidates import candidate_lavaflow_labels
+from lavaflow.configs import candidate_crop_path
+from lavaflow.models import LavaFlowLabel, LavaFlowRegion
 
 
-def read_lavaflow_labels(root: Path = paths.LAVAFLOW_ROOT) -> list[LavaFlowLabel]:
-    """Read back every candidate crop, in the order they were written."""
-    return parquet.read_rows(
-        LavaFlowLabel, LAVAFLOW_LABELS, root / paths.LAVAFLOW_LABELS_NAME
-    )
-
-
-def write_lavaflow_labels(
-    labels: Sequence[LavaFlowLabel], root: Path = paths.LAVAFLOW_ROOT
+def write_candidate_lavaflow_labels(
+    analysis: AnalysisSettings, regions: Mapping[str, LavaFlowRegion]
 ) -> None:
-    """Write every candidate crop down, each with the verdict it holds."""
-    parquet.write_rows(labels, LAVAFLOW_LABELS, root / paths.LAVAFLOW_LABELS_NAME)
+    """List every crop a lava flow reflector is looked for in, and write it.
+
+    Args:
+        analysis: The dataset's analysis settings, holding SHARAD's admit floor.
+        regions: Every region a paper reports reflectors in, by its name.
+    """
+    radargrams = next(
+        one for one in analysis.instrument_sets if one.iid == sharad.LAYOUT.instrument
+    )
+    labels = candidate_lavaflow_labels(
+        every_tile(tile_grid()),
+        radargrams,
+        regions,
+        floor_km2(analysis.criteria, radargrams.iid),
+    )
+    write_lavaflow_labels(labels)
+    for name, region in regions.items():
+        held = [one for one in labels if one.region == name]
+        named = {one.track for one in held if one.named}
+        print(
+            f"lavaflow: {name}, {len(named)} of {len(region.tracks)} named tracks,"
+            f" {sum(one.named for one in held)} named crops,"
+            f" {sum(not one.named for one in held)} unnamed"
+        )
 
 
-def read_lavaflow_verdicts() -> dict[str, str]:
-    """Read the review's verdict on every crop, from a file the pipeline never writes.
+def built_candidate_labels() -> list[LavaFlowLabel]:
+    """Read back the candidate crops the build of every candidate left on disk.
 
     Returns:
-        verdicts: What the review saw in each reviewed crop, by tile and track.
+        labels: The candidate crops on disk, in the order they were written.
     """
-    if not paths.LAVAFLOW_VERDICTS_PATH.is_file():
-        return {}
-    return read_json(paths.LAVAFLOW_VERDICTS_PATH)
-
-
-def write_lavaflow_verdicts(verdicts: dict[str, str]) -> None:
-    """Write the review's verdict on every crop, sorted by tile and track."""
-    write_json(paths.LAVAFLOW_VERDICTS_PATH, verdicts, indent=1, sort_keys=True)
-
-
-def judged_labels(
-    labels: Sequence[LavaFlowLabel], verdicts: dict[str, str]
-) -> list[LavaFlowLabel]:
-    """Return every candidate crop holding the verdict the review gave it, if any."""
-    return [replace(one, verdict=verdicts.get(one.crop)) for one in labels]
+    return [
+        label for label in read_lavaflow_labels() if candidate_crop_path(label).exists()
+    ]

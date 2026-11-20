@@ -15,7 +15,7 @@ from mars_multisensor_dataset.common.console import PLAIN_LOG_ENV
 from dhub import store
 
 
-def checkpoint(project, name: str, base: Path, root: Path, uploads: int):
+def publish_build_checkpoint(project, name: str, base: Path, root: Path, uploads: int):
     """Publish the dataset as it stands, then delete the crops it sent from disk.
 
     Args:
@@ -32,20 +32,22 @@ def checkpoint(project, name: str, base: Path, root: Path, uploads: int):
     print(f"CHECKPOINT UPLOADING AND CLEANING {len(crops):,} crops", flush=True)
     # Whatever sits beside the crops describes them, so it goes up after them
     index = sorted(one for one in root.iterdir() if one.is_file())
-    dataset = store.upload_folder(project, name, base, crops, index, uploads)
+    dataset = store.upload_folder_as_artifact(
+        project, name, base, crops, index, uploads
+    )
     for crop in crops:
         crop.unlink()
     return dataset
 
 
-def fetch_build(
+def download_published_build(
     project, workers: int, build: str, into: Path, names: Sequence[str]
 ) -> None:
     """Bring the named objects of one published dataset build back into a directory."""
-    store.download_folder(project, f"dataset-{build}", into, names, workers)
+    store.download_published_folder(project, f"dataset-{build}", into, names, workers)
 
 
-def published_build(
+def build_and_publish_dataset(
     project,
     name: str,
     base: Path,
@@ -75,12 +77,14 @@ def published_build(
     subfolder = root.relative_to(base).as_posix()
     # A job starts on an empty disk, so only the index of what is built comes down
     if not force:
-        store.download_folder(
+        store.download_published_folder(
             project, name, root, paths.INDEX_NAMES, subfolder=subfolder
         )
     print(f"building the dataset as {settings.name}", flush=True)
-    published = partial(checkpoint, project, name, base, root, settings.workers)
-    fetch = partial(fetch_build, project, settings.workers)
+    published = partial(
+        publish_build_checkpoint, project, name, base, root, settings.workers
+    )
+    fetch = partial(download_published_build, project, settings.workers)
     failed = runner.build_dataset(settings, picked, force, published, fetch, root)
     dataset = published()
     if failed:

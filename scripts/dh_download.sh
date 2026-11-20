@@ -29,10 +29,10 @@ fi
 
 for name in "$@"; do
     case "$name" in
-        ice-consistency) call='store.download_folder(project, store.ICE_CONSISTENCY, store.ARTIFACTS[store.ICE_CONSISTENCY])' ;;
-        lavaflow-labels) call='store.download_folder(project, store.LAVAFLOW, paths.LAVAFLOW_ROOT, [paths.LAVAFLOW_LABELS_NAME, paths.LAVAFLOW_VERDICTS_PATH.name])' ;;
-        lavaflow-candidates) call='store.download_folder(project, store.LAVAFLOW, paths.CANDIDATES_ROOT, subfolder="candidates")' ;;
-        lavaflow-dataset) call='store.download_folder(project, store.LAVAFLOW, paths.DATASET_ROOT, subfolder="dataset")' ;;
+        ice-consistency) call='store.download_published_folder(project, store.ICE_CONSISTENCY, store.ARTIFACTS[store.ICE_CONSISTENCY])' ;;
+        lavaflow-labels) call='store.download_published_folder(project, store.LAVAFLOW, configs.LAVAFLOW_ROOT, [configs.LAVAFLOW_LABELS_NAME, configs.LAVAFLOW_VERDICTS_PATH.name])' ;;
+        lavaflow-candidates) call='store.download_published_folder(project, store.LAVAFLOW, configs.CANDIDATES_ROOT, subfolder="candidates")' ;;
+        lavaflow-dataset) call='store.download_published_folder(project, store.LAVAFLOW, configs.DATASET_ROOT, subfolder="dataset")' ;;
         *)
             echo "nothing is published under \`$name\`" >&2
             usage >&2
@@ -40,6 +40,6 @@ for name in "$@"; do
             ;;
     esac
     (cd "$(dirname "$0")" && uv run --group digitalhub python -c \
-        "import sys, digitalhub as dh; from dhub import store; from lavaflow import paths
+        "import sys, digitalhub as dh; from dhub import store; from lavaflow import configs
 project = dh.get_or_create_project(sys.argv[1]); $call" "$project")
 done

@@ -1,1 +1,1 @@
-"""What every benchmark part shares: where it lives on disk, and its configs."""
+"""What every benchmark part shares: where this repo lives on disk."""

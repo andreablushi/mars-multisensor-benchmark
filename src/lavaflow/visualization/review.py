@@ -6,7 +6,6 @@ from collections import Counter
 from collections.abc import Sequence
 from functools import partial
 from html import escape
-from pathlib import Path
 
 import ipywidgets as widgets
 import numpy as np
@@ -25,18 +24,24 @@ from mars_multisensor_dataset.visualization.training_qualitative.preprocessing i
 )
 from matplotlib.figure import Figure
 
-from lavaflow.labels import (
-    write_lavaflow_verdicts,
-)
-from lavaflow.models import (
-    LavaFlowLabel,
-)
-from lavaflow.paths import CANDIDATES_ROOT
+from lavaflow.analysis.artifacts import write_lavaflow_verdicts
+from lavaflow.configs import candidate_crop_path
+from lavaflow.models import LavaFlowLabel
 from lavaflow.visualization import config
 
 
-def plot(labels: Sequence[LavaFlowLabel], verdicts: dict[str, str]) -> widgets.Widget:
-    """Step through every candidate crop of a region, track by track, to judge it."""
+def crop_review_widget(
+    labels: Sequence[LavaFlowLabel], verdicts: dict[str, str]
+) -> widgets.Widget:
+    """Step through every candidate crop of a region, track by track, to judge it.
+
+    Args:
+        labels: Every crop shown in the review.
+        verdicts: What each reviewed crop shows, written on every verdict.
+
+    Returns:
+        review: The review's controls, note and crop, or a note when none is listed.
+    """
     ranked: dict[str, list[LavaFlowLabel]] = {}
     for label in labels:
         ranked.setdefault(label.region, []).append(label)
@@ -45,7 +50,9 @@ def plot(labels: Sequence[LavaFlowLabel], verdicts: dict[str, str]) -> widgets.W
     return CropReview(ranked, verdicts).box
 
 
-def table(labels: Sequence[LavaFlowLabel], verdicts: dict[str, str]) -> widgets.Widget:
+def review_progress_table(
+    labels: Sequence[LavaFlowLabel], verdicts: dict[str, str]
+) -> widgets.Widget:
     """Tabulate every region's verdicts so far, for the paper's tracks, the rest, all.
 
     Args:
@@ -85,22 +92,17 @@ def table(labels: Sequence[LavaFlowLabel], verdicts: dict[str, str]) -> widgets.
     return panels.written("Every region, as the review leaves it", config.REVIEW, rows)
 
 
-def crop_path(label: LavaFlowLabel) -> Path:
-    """Return where the build of every lava flow candidate writes one crop."""
-    return CANDIDATES_ROOT / store.sample_path(
-        tile_grid().tile_named(label.tile), sharad.LAYOUT.instrument, label.track
-    )
+def crop_radargram_panel(label: LavaFlowLabel) -> widgets.Widget:
+    """Draw one crop's radargram beside its cluttergram, from its surface down.
 
+    Args:
+        label: The candidate crop.
 
-def built_labels(labels: Sequence[LavaFlowLabel]) -> list[LavaFlowLabel]:
-    """Return the candidate crops the build left on disk, in their order."""
-    return [label for label in labels if crop_path(label).exists()]
-
-
-def crop_panel(label: LavaFlowLabel) -> widgets.Widget:
-    """Draw one crop's radargram beside its cluttergram, from its surface down."""
+    Returns:
+        panel: The two panels rendered, or a note when the crop is not on disk.
+    """
     frame = tile_grid().tile_named(label.tile)
-    path = crop_path(label)
+    path = candidate_crop_path(label)
     if not path.exists():
         return panels.unavailable(config.NOT_BUILT)
     with np.load(path) as crop:
@@ -158,24 +160,49 @@ class CropReview(TileStepper):
         self._tile.description = "Crop:"
 
     def _first(self, tiles: list[LavaFlowLabel]) -> int:
-        """Return the index of the chosen region's first crop not yet reviewed."""
+        """Return the index of the chosen region's first crop not yet reviewed.
+
+        Args:
+            tiles: The chosen region's crops, in review order.
+
+        Returns:
+            index: Its first crop with no verdict, or 0 when every one has one.
+        """
         return next(
             (at for at, label in enumerate(tiles) if label.crop not in self._verdicts),
             0,
         )
 
     def _name(self, label: LavaFlowLabel) -> str:
-        """Return what the crop picker calls one crop."""
+        """Return what the crop picker calls one crop.
+
+        Args:
+            label: The candidate crop.
+
+        Returns:
+            name: Its track and tile, marked when the paper names the track.
+        """
         return f"{label.track} on {label.tile}" + (
             config.FROM_PAPER if label.named else ""
         )
 
     def _drawn(self, label: LavaFlowLabel) -> widgets.Widget:
-        """Draw one crop's radargram beside its cluttergram."""
-        return crop_panel(label)
+        """Draw one crop's radargram beside its cluttergram.
+
+        Args:
+            label: The candidate crop.
+
+        Returns:
+            panel: The two panels rendered.
+        """
+        return crop_radargram_panel(label)
 
     def _place(self) -> str:
-        """Return the chosen crop's place and verdict, and its region's count so far."""
+        """Return the chosen crop's place and verdict, and its region's count so far.
+
+        Returns:
+            note: The note shown above the crop.
+        """
         label = self._tile.value
         judged = Counter(
             self._verdicts.get(one.crop, config.NOT_REVIEWED)
@@ -197,6 +224,7 @@ class CropReview(TileStepper):
 
         Args:
             verdict: What the crop shows.
+            _button: The button clicked, unused.
         """
         self._verdicts[self._tile.value.crop] = verdict
         write_lavaflow_verdicts(self._verdicts)

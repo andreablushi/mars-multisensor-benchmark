@@ -14,7 +14,7 @@ from mars_multisensor_dataset.building.configs import sharad
 from lavaflow.models import LavaFlowLabel
 
 
-def draw_lavaflow(
+def selections_holding_lavaflow_tracks(
     picked: Sequence[Selection], labels: Sequence[LavaFlowLabel]
 ) -> list[Selection]:
     """Keep every tile a lava flow crop lies on, holding its labelled tracks alone.

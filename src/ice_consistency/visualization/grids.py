@@ -13,30 +13,32 @@ from mars_multisensor_dataset.visualization.placement import (
     placed_tile,
 )
 
-from ice_consistency.labels import read_ice_labels
+from ice_consistency.analysis.artifacts import read_ice_labels
+from ice_consistency.analysis.position import grid_point_positions
+from ice_consistency.configs import GRID_POINTS
 from ice_consistency.models import IceLabel
-from ice_consistency.sample import (
-    GRID_POINTS,
-    labels_positions,
-)
 from ice_consistency.visualization import config
 
 
-def plot_ice() -> widgets.HBox:
-    """Show each hardcoded tile with the ice SWIM finds between 1 and 5 m over it."""
+def icy_and_dry_tile_panels() -> widgets.HBox:
+    """Show each hardcoded tile with the ice SWIM finds between 1 and 5 m over it.
+
+    Returns:
+        panels: One map per sample tile, side by side.
+    """
     by_tile = {label.tile: label for label in read_ice_labels()}
     shown = []
     for title, tile in config.ICE_SAMPLES.items():
         placed = placed_tile(tile)
         space = mosaic.fetched(
-            placed.crop(), partial(ice_map, placed, by_tile[tile], title)
+            placed.crop(), partial(tile_ice_grid_image, placed, by_tile[tile], title)
         )
         space.layout = config.ICE_PANEL
         shown.append(space)
     return widgets.HBox(shown)
 
 
-def ice_map(
+def tile_ice_grid_image(
     placed: PlacedTile,
     label: IceLabel,
     title: str,
@@ -53,7 +55,7 @@ def ice_map(
     Returns:
         map: The map, rendered.
     """
-    lon, lat = labels_positions(
+    lon, lat = grid_point_positions(
         np.array([label.centre_lon]), np.array([label.centre_lat])
     )
     side = (GRID_POINTS, GRID_POINTS)

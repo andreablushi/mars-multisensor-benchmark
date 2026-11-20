@@ -15,15 +15,15 @@ from digitalhub_runtime_python.utils.inputs import compose_inputs
 
 UV = "/opt/nuclio/uv/uv"
 DATASET_PACKAGE = "mars-multisensor-dataset"
-DATASET_ROOT = Path("/shared")
+DATASET_UNPACK_ROOT = Path("/shared")
 
 ARCHIVE_CONTEXT = ssl.create_default_context()
 ARCHIVE_CONTEXT.verify_flags = ssl.VERIFY_X509_PARTIAL_CHAIN
 
 STAGES = {
-    "ice_consistency": "scripts.ice_consistency_pipeline:run_labels",
-    "lavaflow_labels": "scripts.lavaflow_pipeline:run_labels",
-    "build_lavaflow": "scripts.lavaflow_pipeline:run_build",
+    "ice_consistency": "scripts.ice_consistency_pipeline:published_ice_labels",
+    "lavaflow_labels": "scripts.lavaflow_pipeline:published_lavaflow_labels",
+    "build_lavaflow": "scripts.lavaflow_pipeline:published_lavaflow_build",
 }
 
 
@@ -40,7 +40,7 @@ def job_parameters(
     """
 
 
-def run_installed_stage(
+def installed_stage_outputs(
     project_name: str,
     run_key: str,
     stage: str,
@@ -69,12 +69,12 @@ def run_installed_stage(
     with urllib.request.urlopen(dataset_archive, context=ARCHIVE_CONTEXT) as response:
         with tarfile.open(fileobj=io.BytesIO(response.read()), mode="r:gz") as archive:
             top = archive.getnames()[0].split("/")[0]
-            archive.extractall(DATASET_ROOT, filter="data")
-    sys.path.insert(0, str(DATASET_ROOT / top / "src"))
+            archive.extractall(DATASET_UNPACK_ROOT, filter="data")
+    sys.path.insert(0, str(DATASET_UNPACK_ROOT / top / "src"))
     module, name = STAGES[stage].split(":")
     stage_handler = getattr(importlib.import_module(module), name)
     composed = compose_inputs({}, arguments, False, stage_handler, project_name)
     return stage_handler(project_name, run_key, **composed)
 
 
-run_installed_stage.__wrapped__ = job_parameters
+installed_stage_outputs.__wrapped__ = job_parameters

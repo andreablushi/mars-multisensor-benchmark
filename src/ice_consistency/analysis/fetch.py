@@ -14,34 +14,11 @@ from mars_multisensor_dataset.common.fetch.http import (
     FetchError,
     streamed,
 )
-from mars_multisensor_dataset.common.maths import geodesy
 
-from ice_consistency import paths
-
-LAYERS = {
-    "Ci_1_5": (paths.SWIM_MAPS_PATH, "SWIM4MIM_Ci_1_5.tif"),
-    "Ci_5": (paths.SWIM_MAPS_PATH, "SWIM4MIM_Ci_5.tif"),
-    "RS": (paths.SWIM_RADAR_PATH, "SWIM2_RS.tif"),
-}
-
-ARCHIVES = {
-    paths.SWIM_MAPS_PATH: (
-        "https://swim.psi.edu/SWIM4MIMProducts.php",
-        ("Ci_1_5-GeoTIFF", "Ci_5-GeoTIFF"),
-    ),
-    paths.SWIM_RADAR_PATH: (
-        "https://swim.psi.edu/SWIM2Products.php",
-        ("C_RS-GeoTIFF",),
-    ),
-}
-
-# Every map is simple cylindrical at 20 pixels a degree, from 180W and 60N.
-PIXELS_PER_DEGREE = 20
-WEST_LON = -180.0
-NORTH_LAT = 60.0
+from ice_consistency.configs import ARCHIVES, LAYERS
 
 
-def download_maps(force: bool) -> None:
+def download_swim_maps(force: bool) -> None:
     """Fetch every archive the layers read come in, unless it is already on disk.
 
     Args:
@@ -63,7 +40,7 @@ def download_maps(force: bool) -> None:
             streamed(str(asked.next_request.url), path, client=client, spans=())
 
 
-def read_consistency_map(layer: str) -> np.ndarray:
+def read_swim_consistency_layer(layer: str) -> np.ndarray:
     """Read one layer from the archive it comes in.
 
     Args:
@@ -75,24 +52,3 @@ def read_consistency_map(layer: str) -> np.ndarray:
     path, name = LAYERS[layer]
     with zipfile.ZipFile(path) as archive:
         return tifffile.imread(io.BytesIO(archive.read(name))).astype(np.float32)
-
-
-def map_pixels(lon: np.ndarray, lat: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Return the pixel every point falls in on any of the maps.
-
-    Args:
-        lon: The longitudes of the points, in degrees.
-        lat: The latitudes of the points, in degrees.
-
-    Returns:
-        rows: The row each point falls in.
-        columns: The column each point falls in, wrapped across 180 degrees.
-    """
-    rows = np.floor((NORTH_LAT - lat) * PIXELS_PER_DEGREE).astype(int)
-    columns = np.floor(
-        (geodesy.normalise_longitude(lon) - WEST_LON) * PIXELS_PER_DEGREE
-    ).astype(int)
-    return (
-        np.clip(rows, 0, round(2 * NORTH_LAT * PIXELS_PER_DEGREE) - 1),
-        columns % round(geodesy.TURN * PIXELS_PER_DEGREE),
-    )

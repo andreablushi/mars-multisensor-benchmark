@@ -11,7 +11,7 @@ from omegaconf import OmegaConf
 from common.paths import CONFIGS_ROOT, REPO_ROOT
 
 
-def script_parser(description: str, forced: str) -> argparse.ArgumentParser:
+def script_argument_parser(description: str, forced: str) -> argparse.ArgumentParser:
     """Return the parser every script shares, for it to add its own flags to.
 
     Args:
@@ -30,7 +30,9 @@ def script_parser(description: str, forced: str) -> argparse.ArgumentParser:
     return parser
 
 
-def submitted(stage: str, ref: str, overrides: Sequence[str] = (), **parameters) -> int:
+def submit_stage_run(
+    stage: str, ref: str, overrides: Sequence[str] = (), **parameters
+) -> int:
     """Register a version of one stage from a pushed commit, and run it.
 
     Args:
@@ -58,7 +60,7 @@ def submitted(stage: str, ref: str, overrides: Sequence[str] = (), **parameters)
         python_version=platform.python_version,
         base_image=platform.base_image,
         code_src=f"git+{platform.repository}#{ref}",
-        handler="scripts.dhub.job:run_installed_stage",
+        handler="scripts.dhub.job:installed_stage_outputs",
         requirements=str(REPO_ROOT / "requirements.txt"),
     )
 

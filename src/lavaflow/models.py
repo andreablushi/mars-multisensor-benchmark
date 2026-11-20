@@ -4,14 +4,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 
+from mars_multisensor_dataset.analysis.selector.models.selection import Selection
 from mars_multisensor_dataset.building.models.settings import BuildSettings
 from mars_multisensor_dataset.common.maths.box import Boxed
-
-REFLECTOR = "reflector"
-NONE = "none"
-UNSURE = "unsure"
-VERDICTS = (REFLECTOR, NONE, UNSURE)
 
 
 @dataclass(slots=True)
@@ -60,7 +57,7 @@ class LavaFlowLabel:
         region: The region it lies in, as the config names it.
         source: The paper the region is read from.
         named: Whether that paper names the track.
-        verdict: What the review saw, one of `VERDICTS`, or None before it.
+        verdict: What the review saw, reflector, none or unsure, or None before it.
     """
 
     tile: str
@@ -76,3 +73,18 @@ class LavaFlowLabel:
     def crop(self) -> str:
         """Return what tells this crop from every other, as the verdicts key it."""
         return f"{self.tile}/{self.track}"
+
+
+@dataclass(frozen=True, slots=True)
+class LavaFlowBuild:
+    """One lava flow build made ready to run, its labels already written in its root.
+
+    Attributes:
+        root: Where the build is written, the candidates or the reviewed crops.
+        fresh: Whether it is built from nothing rather than filled in.
+        selections: The tiles to build, each holding the tracks labelled on it.
+    """
+
+    root: Path
+    fresh: bool
+    selections: list[Selection]

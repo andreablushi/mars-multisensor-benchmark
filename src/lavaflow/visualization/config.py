@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from lavaflow.models import (
+from lavaflow.configs import (
     NONE,
     REFLECTOR,
     UNSURE,
