@@ -56,8 +56,8 @@ def run_installed_stage(
         stage: Which stage, naming its handler.
         arguments: What the stage's handler is called with.
         requirements: The repository's pinned requirements.
-        dataset_archive: The dataset repository's archive, unpacked and imported from
-            in place of its pin, so its configs and data sit beside its code.
+        dataset_archive: The dataset repository's archive, unpacked and imported first,
+            ahead of its pin, so its configs and data sit beside its code.
 
     Returns:
         outputs: What the stage's handler logged, for the run's status.
@@ -70,7 +70,7 @@ def run_installed_stage(
         with tarfile.open(fileobj=io.BytesIO(response.read()), mode="r:gz") as archive:
             top = archive.getnames()[0].split("/")[0]
             archive.extractall(DATASET_ROOT, filter="data")
-    sys.path.append(str(DATASET_ROOT / top / "src"))
+    sys.path.insert(0, str(DATASET_ROOT / top / "src"))
     module, name = STAGES[stage].split(":")
     stage_handler = getattr(importlib.import_module(module), name)
     composed = compose_inputs({}, arguments, False, stage_handler, project_name)
