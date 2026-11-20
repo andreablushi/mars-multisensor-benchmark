@@ -7,7 +7,7 @@ project: mars-multisensor-features
 repository: https://github.com/andreablushi/mars-multisensor-benchmark
 source_root: /shared
 
-# The dataset repository a job unpacks beside the clone and installs editable, so its
+# The dataset repository a job unpacks beside the clone and imports from, so its
 # configs and data root sit where its code expects them.
 dataset_archive: https://github.com/andreablushi/mars-multisensor-dataset/archive/refs/heads/main.tar.gz
 

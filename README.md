@@ -33,7 +33,7 @@ uv run python scripts/lavaflow_pipeline.py                   # build the reviewe
 | `--dh` | all | submit to DigitalHub instead of running here |
 | `--ref` | all | with `--dh`, the branch, tag, or commit the platform clones |
 
-A DigitalHub job installs `requirements.txt`, then unpacks the dataset's main branch under `/shared` and installs it editable, so the dataset finds its configs and data root. Export the requirements again whenever `uv.lock` changes:
+A DigitalHub job installs `requirements.txt`, then unpacks the dataset's main branch under `/shared` and imports it from there, so the dataset finds its configs and data root. Export the requirements again whenever `uv.lock` changes:
 
 ```bash
 uv export --no-hashes --no-dev --group digitalhub --no-emit-project --no-sources -o requirements.txt
