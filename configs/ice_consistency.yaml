@@ -1,0 +1,8 @@
+# The subsurface ice the SWIM maps place under every tile between 60S and 60N.
+
+# The consistency from which a point is icy, per depth (Morgan, Putzig et al. 2025).
+threshold_1_5m: 0.4
+threshold_5m: 0.5
+
+# The share of a tile's points icy at a depth from which the tile is icy there.
+icy_share: 0.5

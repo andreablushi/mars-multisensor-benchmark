@@ -1,0 +1,42 @@
+# What a run submitted to DigitalHub is given, and what it publishes.
+
+# The project every run and every published archive belongs to.
+project: mars-multisensor-features
+
+# The repository the platform clones, and where that clone lands on the job.
+repository: https://github.com/andreablushi/mars-multisensor-benchmark
+source_root: /shared
+
+# The dataset repository a job unpacks beside the clone and installs editable, so its
+# configs and data root sit where its code expects them.
+dataset_archive: https://github.com/andreablushi/mars-multisensor-dataset/archive/refs/heads/main.tar.gz
+
+# The interpreter and the platform's own base image a job runs on, which installs
+# requirements.txt from its clone with uv.
+python_version: PYTHON3_13
+base_image: python:3.13-slim
+
+# What each stage is scheduled on, its profile settling the limit it is killed at.
+# A stage marked shared queues on the shared pool, the rest on the reserved one.
+resources:
+  # The SWIM maps and the labels of every grid tile and evaluation box
+  ice_consistency:
+    profile: cpu
+    shared: true
+    cpu: 4
+    memory: 16Gi
+    disk: 16Gi
+  # The candidate list, read from the coverage of every tile
+  lavaflow_labels:
+    profile: cpu
+    shared: true
+    cpu: 4
+    memory: 16Gi
+    disk: 16Gi
+  # SHARAD alone, so no ISIS and a few hundred small crops
+  build_lavaflow:
+    profile: cpu
+    shared: true
+    cpu: 4
+    memory: 16Gi
+    disk: 16Gi
