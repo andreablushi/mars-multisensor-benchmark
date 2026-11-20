@@ -8,13 +8,13 @@ from pathlib import Path
 
 from dhub import build, store, submit
 from digitalhub_runtime_python import handler
+from mars_multisensor_dataset.analysis.config import analysis_settings
 from mars_multisensor_dataset.analysis.selector.artifacts import read_selection
 from mars_multisensor_dataset.analysis.selector.filters.admit import floor_km2
 from mars_multisensor_dataset.analysis.selector.models.selection import Selection
 from mars_multisensor_dataset.analysis.utils.tile_group import every_tile, tile_grid
 from mars_multisensor_dataset.building import runner
 from mars_multisensor_dataset.building.configs import sharad
-from mars_multisensor_dataset.common.config import analysis_settings
 
 from common.config import lavaflow_settings
 from lavaflow import paths
